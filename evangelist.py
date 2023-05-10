@@ -4,11 +4,10 @@ import discord
 from discord.ext import tasks
 import asyncio
 from loguru import logger
-from dotenv import dotenv_values
 import urllib.parse
-from utils import clear, get_words_or_signs, write_message_to_file, get_scripture, add_scripture, delete_scripture, get_replies_amount,  send_request
+import os
+from utils import clear, get_words_or_signs, write_message_to_file, get_scripture, add_scripture, delete_scripture, get_replies_amount, send_request
 
-config = dotenv_values(".env")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -17,16 +16,22 @@ intents.dm_messages = True
 
 client = discord.Client(intents=intents)
 
-OWNER_ID = int(config['OWNER_ID'])
-MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{config['TARGET_CHANNEL_ID']}/messages?limit=100"
+TARGET_CHANNEL_ID = os.environ.get('TARGET_CHANNEL_ID')
+OWNER_ID = int(os.environ.get('OWNER_ID'))
+SERVER_ID = os.environ.get('SERVER_ID')
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+TOKEN = os.environ.get('TOKEN')
+TARGET_USER_ID = os.environ.get('TARGET_USER_ID')
+
+MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{TARGET_CHANNEL_ID}/messages?limit=100"
 headers = {
-    'authorization': config['TOKEN'],
+    'authorization': TOKEN,
     'Content-Type': 'application/json'
 }
 
 
 async def main():
-    await client.start(config['BOT_TOKEN'])
+    await client.start(BOT_TOKEN)
 
 
 @tasks.loop(minutes=1)
@@ -47,8 +52,6 @@ async def update_prophecies():
         author = msg.get('author').get('username')
         content = msg.get('content') if msg.get('content') else ' '
         msg_id = msg.get('id')
-        channel_id = config['TARGET_CHANNEL_ID']
-        server_id = config['SERVER_ID']
 
         if not date:
             logger.error('Missing date')
@@ -60,9 +63,9 @@ async def update_prophecies():
             logger.error('Missing author')
             continue
 
-        jump_url = f"https://discord.com/channels/{server_id}/{channel_id}/{msg_id}"
+        jump_url = f"https://discord.com/channels/{SERVER_ID}/{TARGET_CHANNEL_ID}/{msg_id}"
 
-        if msg['author']['id'] == config['TARGET_USER_ID']:
+        if msg['author']['id'] == TARGET_USER_ID:
             m_count += 1
             logger.debug(f'Messages amount: {m_count}')
 
@@ -90,12 +93,12 @@ async def update_prophecies():
                     r = str(emoji)
                     emoji = urllib.parse.quote(emoji)
                 # logger.info(r)
-                endpoint = f"https://discord.com/api/v10/channels/{channel_id}/messages/{msg_id}/reactions/{emoji}"
+                endpoint = f"https://discord.com/api/v10/channels/{SERVER_ID}/messages/{msg_id}/reactions/{emoji}"
 
                 users = await send_request(endpoint, headers)
                 for user in users:
 
-                    if user['id'] != config['TARGET_USER_ID']:
+                    if user['id'] != TARGET_USER_ID:
                         continue
                     r_count += 1
                     logger.debug(f'Reactions count: {r_count}')
