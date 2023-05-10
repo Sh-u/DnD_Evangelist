@@ -1,9 +1,11 @@
 
+import datetime
 import discord
 from discord.ext import tasks
 import asyncio
 from loguru import logger
 from dotenv import dotenv_values
+import urllib.parse
 from utils import clear, get_words_or_signs, write_message_to_file, get_scripture, add_scripture, delete_scripture, parse_to_number, get_replies_amount, get_messages, send_request
 
 config = dotenv_values(".env")
@@ -15,8 +17,12 @@ intents.dm_messages = True
 
 client = discord.Client(intents=intents)
 
-proxies = []
 OWNER_ID = int(config['OWNER_ID'])
+MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{config['TARGET_CHANNEL_ID']}/messages?limit=100"
+headers = {
+    'authorization': config['TOKEN'],
+    'Content-Type': 'application/json'
+}
 
 
 async def main():
@@ -26,56 +32,75 @@ async def main():
 @tasks.loop(minutes=1)
 async def update_prophecies():
     logger.info("Updating prophecies!")
-    # channel = discord.utils.get(client.get_all_channels(
-    # ), guild__name='test', name='xdd')
-    # if not channel:
-    #     logger.error("Channel not found")
-    #     return
+    r_count = 0
+    m_count = 0
+    msgs = await send_request(MESSAGES_ENDPOINT, headers)
 
-    # logger.info(f"Channel: {channel}")
-
-    # msgs = [message async for message in channel.history(limit=500)]
-    msgs = await get_messages()
+    if not msgs or len(msgs) == 0:
+        logger.error("No messages found")
 
     for msg in msgs:
-        logger.debug(msg.content)
-        if msg['author']['id'] == int(config['TARGET_USER_ID']):
+
+        date = msg.get('timestamp')
+        date = datetime.datetime.fromisoformat(date)
+        date = date.strftime('%Y-%m-%d %H:%M:%S')
+        author = msg.get('author').get('username')
+        content = msg.get('content') if msg.get('content') else ''
+        msg_id = msg.get('id')
+        channel_id = config['TARGET_CHANNEL_ID']
+        server_id = config['SERVER_ID']
+
+        if not date or not author or not content or not msg_id:
+            logger.error('Missing fields')
+            continue
+        jump_url = f"https://discord.com/channels/{server_id}/{channel_id}/{msg_id}"
+
+        if msg['author']['id'] == config['TARGET_USER_ID']:
+            m_count += 1
+            logger.debug(f'Messages amount: {m_count}')
 
             words = {
-                'date': msg['created_at'],
-                'author': msg['author']['name'],
-                'content': msg['content'],
-                'jump_url': msg['jump_url'],
-            }
-
-            await write_message_to_file(message=words, attr='words', filename='prophecies.json').id == int(config['TARGET_USER_ID']):
-
-            words = {
-                'date': msg.created_at.strftime('%Y-%m-%d %H:%M:%S %z'),
-                'author': msg.author.name,
-                'content': msg.content,
-                'jump_url': msg.jump_url,
+                'date': date,
+                'author': author,
+                'content': content,
+                'jump_url': jump_url,
             }
 
             await write_message_to_file(message=words, attr='words', filename='prophecies.json')
-        if msg['reactions']:
+        if msg.get('reactions'):
+
             reactions = msg['reactions']
+
             for reaction in reactions:
-                endpoint = f"https://discord.com/api/v10/channels/{config['TARGET_CHANNEL_ID']}/messages/{msg['id']}/reactions/{reaction['emoji']}"
-                users = [user async for user in reaction.users()]
+                emoji = reaction['emoji']
+                r = emoji.get('name')
+
+                if emoji.get('id'):
+                    r = f":{emoji['name']}:"
+                    emoji = f"{emoji['name']}:{emoji['id']}"
+                else:
+                    emoji = emoji.get('name')
+                    r = str(emoji)
+                    emoji = urllib.parse.quote(emoji)
+                # logger.info(r)
+                endpoint = f"https://discord.com/api/v10/channels/{channel_id}/messages/{msg_id}/reactions/{emoji}"
+
+                users = await send_request(endpoint, headers)
                 for user in users:
-                    if user.id != int(config['TARGET_USER_ID']):
+
+                    if user['id'] != config['TARGET_USER_ID']:
                         continue
+                    r_count += 1
+                    logger.debug(f'Reactions count: {r_count}')
 
                     signs = {
-                        'date': msg.created_at.strftime('%Y-%m-%d %H:%M:%S %z'),
-                        'author': msg.author.name,
-                        'content': msg.content,
-                        'jump_url': msg.jump_url,
-                        'reaction': str(reaction.emoji)
+                        'date': date,
+                        'author': author,
+                        'content': content,
+                        'jump_url': jump_url,
+                        'reaction': r
                     }
                     await write_message_to_file(message=signs, attr='signs', filename='prophecies.json')
-                    logger.debug(user)
 
 
 @ client.event
@@ -96,7 +121,7 @@ async def on_message(msg):
     if not isinstance(msg.channel, discord.DMChannel) and client.user in msg.mentions:
         target_channel = msg.channel
     elif not isinstance(msg.channel, discord.DMChannel):
-        logger.error('Tried to use command without tagging the bot.')
+        logger.warning('Tried to use command without tagging the bot.')
         return
 
     if msg.content.startswith('!clear') and msg.author.id == OWNER_ID:
@@ -110,19 +135,26 @@ async def on_message(msg):
 
     if msg.content.startswith('!delete_scripture') and msg.author.id == OWNER_ID:
         _, value = msg.content.split(' ', 1)
-        logger.info(value)
         await delete_scripture(value)
         return
 
     if msg.content.startswith('!sign'):
         amount = get_replies_amount(msg.content)
         signs = await get_words_or_signs('signs', amount)
+
+        if not signs or len(signs) == 0:
+            await target_channel.send('I am sorry my child, we are praying for the lord to give us a sign...')
+            return
         for sign in signs:
             await target_channel.send(sign)
 
     if msg.content.startswith('!word'):
         amount = get_replies_amount(msg.content)
         words = await get_words_or_signs('words', amount)
+        if not words or len(words) == 0:
+            await target_channel.send('I am sorry my child, we are praying for the lord to speak...')
+            return
+
         for word in words:
             await target_channel.send(word)
 
