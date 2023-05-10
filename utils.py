@@ -68,7 +68,7 @@ async def add_scripture(scripture):
 
 async def delete_scripture(input):
     index = parse_to_number(input)
-    if not index and != 0:
+    if not index and index != 0:
         return
     try:
         async with aiofiles.open('scriptures.json', 'r', encoding='utf-8') as file:
