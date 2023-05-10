@@ -6,7 +6,7 @@ import asyncio
 from loguru import logger
 from dotenv import dotenv_values
 import urllib.parse
-from utils import clear, get_words_or_signs, write_message_to_file, get_scripture, add_scripture, delete_scripture, parse_to_number, get_replies_amount, get_messages, send_request
+from utils import clear, get_words_or_signs, write_message_to_file, get_scripture, add_scripture, delete_scripture, get_replies_amount,  send_request
 
 config = dotenv_values(".env")
 
@@ -45,14 +45,21 @@ async def update_prophecies():
         date = datetime.datetime.fromisoformat(date)
         date = date.strftime('%Y-%m-%d %H:%M:%S')
         author = msg.get('author').get('username')
-        content = msg.get('content') if msg.get('content') else ''
+        content = msg.get('content') if msg.get('content') else ' '
         msg_id = msg.get('id')
         channel_id = config['TARGET_CHANNEL_ID']
         server_id = config['SERVER_ID']
 
-        if not date or not author or not content or not msg_id:
-            logger.error('Missing fields')
+        if not date:
+            logger.error('Missing date')
             continue
+        if not content:
+            logger.error('Missing content')
+            continue
+        if not author:
+            logger.error('Missing author')
+            continue
+
         jump_url = f"https://discord.com/channels/{server_id}/{channel_id}/{msg_id}"
 
         if msg['author']['id'] == config['TARGET_USER_ID']:

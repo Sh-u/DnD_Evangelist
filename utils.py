@@ -1,7 +1,6 @@
 
 
 import aiohttp
-import datetime
 import json
 import random
 import aiofiles
@@ -135,17 +134,6 @@ async def write_message_to_file(message, attr, filename):
 async def get_prophecies():
     async with aiofiles.open('prophecies.json', 'r', encoding='utf-8') as file:
         return json.loads(await file.read())
-
-
-async def get_messages():
-    logger.info('get messages')
-    headers = {
-        'authorization': config['TOKEN'],
-        'Content-Type': 'application/json'
-    }
-
-    data = await send_request(config['MESSAGES_ENDPOINT'], headers)
-    return data
 
 
 def requestDataByProxy(site, proxies, type='get', options=None,):
