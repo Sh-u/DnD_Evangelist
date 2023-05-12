@@ -87,17 +87,21 @@ async def delete_scripture(input):
 
 
 async def get_words_or_signs(type, amount=1):
-    if amount > 3:
-        amount = 3
-    elif amount <= 0:
-        amount = 1
+   
     data = await get_prophecies()
+    
+   
 
     if not data or type != 'words' and type != 'signs':
         logger.error(f"Failed retrieving prophecies or wrong type.")
         return
     sorted_messages = sorted(
         data[type], key=lambda x: x['date'], reverse=True)
+    
+    if amount >= len(data[type]):
+        amount = len(data[type]) - 1
+    elif amount <= 0:
+        amount = 1
 
     messages = []
     blessing = 'word' if type == 'words' else 'sign'
@@ -106,7 +110,7 @@ async def get_words_or_signs(type, amount=1):
     for i in range(amount):
         if i < len(sorted_messages):
             jump_url = sorted_messages[i]['jump_url']
-            date = sorted_messages[i]['date'][:-5]
+            date = sorted_messages[i]['date']
             content = f"``{sorted_messages[i]['content']}``" if blessing == 'word' else sorted_messages[i]['reaction']
             sign = f"{jump_url}\n\n *At {date}UTC, **Lord Graysun** has blessed us with a {blessing}:* \n\n {content}\n\n *Praise be to him* {praying_hands}\n-------------------------------------------------------\n"
             messages.append(sign)
