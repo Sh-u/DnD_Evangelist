@@ -18,10 +18,10 @@ client = discord.Client(intents=intents)
 
 TARGET_CHANNEL_ID = os.environ.get('TARGET_CHANNEL_ID')
 OWNER_ID = int(os.environ.get('OWNER_ID'))
-SERVER_ID = os.environ.get('SERVER_ID')
+SERVER_ID = str(os.environ.get('SERVER_ID'))
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 TOKEN = os.environ.get('TOKEN')
-TARGET_USER_ID = os.environ.get('TARGET_USER_ID')
+TARGET_USER_ID = str(os.environ.get('TARGET_USER_ID'))
 
 MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{TARGET_CHANNEL_ID}/messages?limit=100"
 headers = {
