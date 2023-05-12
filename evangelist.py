@@ -95,7 +95,7 @@ async def update_prophecies():
                     r = str(emoji)
                     emoji = urllib.parse.quote(emoji)
                 # logger.info(r)
-                endpoint = f"https://discord.com/api/v10/channels/{SERVER_ID}/messages/{msg_id}/reactions/{emoji}"
+                endpoint = f"https://discord.com/api/v10/channels/{TARGET_CHANNEL_ID}/messages/{msg_id}/reactions/{emoji}"
 
                 users = await send_request(endpoint, headers)
                 for user in users:
