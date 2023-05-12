@@ -78,7 +78,9 @@ async def update_prophecies():
 
             await write_message_to_file(message=words, attr='words', filename='prophecies.json')
         if msg.get('reactions'):
-
+            logger.success(msg)
+            logger.debug(type(TARGET_USER_ID))
+            
             reactions = msg['reactions']
 
             for reaction in reactions:
