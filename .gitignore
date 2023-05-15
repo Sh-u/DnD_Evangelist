@@ -1,3 +1,7 @@
 validProxies.txt
 proxyList.txt
 .env
+clear.py
+.vscode
+proxyCheck.py
+__pycache__

@@ -1,18 +1,75 @@
 
 
 import aiohttp
-import json
+from datetime import datetime
 import random
 import aiofiles
 from loguru import logger
-import requests
-from dotenv import dotenv_values
+import os
+import sys
 
-config = dotenv_values(".env")
+
+DEBUG = True if sys.argv[1] and sys.argv[1] == 'DEBUG' else False
+logger.debug(DEBUG)
+BOT_TOKEN = os.environ.get('EVANGELIST_BOT_TOKEN')
+TOKEN = os.environ.get('EVANGELIST_TOKEN')
+
+PROPHECIES_ID = os.environ.get('EVANGELIST_PROPHECIES_BIN_ID')
+SCRIPTURES_ID = os.environ.get('EVANGELIST_SCRIPTURES_BIN_ID')
+BIN_MASTER_KEY = os.environ.get('EVANGELIST_BIN_MASTER')
+SCRIPTURES_CHANNEL_ID = os.environ.get('EVANGELIST_SCRIPTURES_CHANNEL_ID')
+TEST_CHANNEL_ID = os.environ.get('EVANGELIST_TEST_CHANNEL_ID')
+TEST_SERVER_ID = os.environ.get('EVANGELIST_TEST_SERVER_ID')
+
+
+OWNER_ID = os.environ.get('EVANGELIST_OWNER_ID')
+
+
+SERVER_ID = os.environ.get(
+    'EVANGELIST_SERVER_ID') if not DEBUG else TEST_SERVER_ID
+GRAYSUN_USER_ID = os.environ.get(
+    'EVANGELIST_GRAYSUN_USER_ID') if not DEBUG else OWNER_ID
+SDF_USER_ID = os.environ.get(
+    'EVANGELIST_SDF_USER_ID') if not DEBUG else OWNER_ID
+NEWS_CHANNEL_ID = os.environ.get(
+    'EVANGELIST_NEWS_CHANNEL_ID') if not DEBUG else TEST_CHANNEL_ID
+TARGET_CHANNEL_ID = os.environ.get(
+    'EVANEGLIST_TARGET_CHANNEL_ID') if not DEBUG else TEST_CHANNEL_ID
+
+MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{TARGET_CHANNEL_ID}/messages?limit=100"
+
+headers = {
+    'authorization': TOKEN,
+    'Content-Type': 'application/json'
+}
+
+
+async def _request_bin(bin_id, method, data=None):
+    url = f"https://api.jsonbin.io/v3/b/{bin_id}"
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Master-Key': f"{BIN_MASTER_KEY}"
+    }
+    async with aiohttp.ClientSession() as session:
+        try:
+
+            request_method = getattr(session, method)
+
+            async with request_method(url, data=data, headers=headers) as response:
+                logger.warning(f"master: {BIN_MASTER_KEY}, bin id: {bin_id}")
+                response.raise_for_status()
+                data = await response.json()
+                logger.debug(data)
+                if not data or response.status != 200:
+                    logger.error(
+                        f"Could not process the bin, status code: {response.status}\n")
+
+                return data
+        except aiohttp.ClientError as error:
+            logger.error(f"Error sending request: {error}")
 
 
 async def send_request(url, headers):
-
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(url, headers=headers) as response:
@@ -28,137 +85,195 @@ async def send_request(url, headers):
             logger.error(f"Error sending request: {error}")
 
 
+async def update_bin(data, bin_id):
+    await _request_bin(bin_id, 'put', data=data)
+
+
+async def get_bin(bin_id):
+    return await _request_bin(bin_id, 'get')
+
+
 async def get_proxies():
     async with aiofiles.open('validProxies.txt', 'r') as f:
         global proxies
         proxies = await f.read().split("\n")
 
 
-async def clear():
-    async with aiofiles.open('prophecies.json', 'w') as file:
-        cleared = {
-            "words": [],
-            "signs": []
-        }
-        await file.write(json.dumps(cleared))
+async def get_prophecies():
+    return await get_bin(PROPHECIES_ID)
 
 
 async def get_scripture():
-    async with aiofiles.open('scriptures.json', 'r', encoding='utf-8') as file:
-        scriptures = json.loads(await file.read())
-        scriptures = scriptures['scriptures']
+    scriptures = await get_bin(SCRIPTURES_ID)
+    scriptures = scriptures['scriptures']
 
-        if len(scriptures) == 0:
-            logger.error("Scriptures are empty.")
-            return None
-        scripture = random.choice(scriptures)
-        logger.debug(
-            f"Getting a scripture index: {scriptures.index(scripture)}")
-        return scripture
-
-
-async def add_scripture(scripture):
-    async with aiofiles.open('scriptures.json', 'r', encoding='utf-8') as file:
-        scriptures = json.loads(await file.read())
-        scriptures['scriptures'].append(scripture)
-
-        async with aiofiles.open('scriptures.json', 'w', encoding='utf-8') as file:
-            await file.write(json.dumps(scriptures))
+    if len(scriptures) == 0:
+        logger.error("Scriptures are empty.")
+        return None
+    scripture = random.choice(scriptures)
+    logger.debug(
+        f"Getting a scripture index: {scriptures.index(scripture)}")
+    return scripture
 
 
-async def delete_scripture(input):
-    index = parse_to_number(input)
-    if not index and index != 0:
-        return
-    try:
-        async with aiofiles.open('scriptures.json', 'r', encoding='utf-8') as file:
-            scriptures = json.loads(await file.read())
-            if index < 0 or index >= len(scriptures['scriptures']):
-                logger.error(f"Index out of range: {index}")
-                return
-            scriptures['scriptures'].pop(index)
+async def add_scriptures(messages):
+    scriptures = await get_bin(SCRIPTURES_ID)
 
-            async with aiofiles.open('scriptures.json', 'w', encoding='utf-8') as file:
-                await file.write(json.dumps(scriptures))
+    for message in messages:
+        if message in scriptures['scriptures']:
+            continue
+        scriptures['scriptures'].append(message)
 
-    except FileNotFoundError:
-        logger.error(f"Scriptures file not found.")
-        return
+    await update_bin(scriptures, SCRIPTURES_ID)
 
 
-async def get_words_or_signs(type, amount=1):
+async def get_replies(type, amount=1):
     if amount > 3:
         amount = 3
     elif amount <= 0:
         amount = 1
-    data = await get_prophecies()
+    prophecies = await get_prophecies()
 
-    if not data or type != 'words' and type != 'signs':
+    logger.debug(prophecies)
+
+    if not prophecies or type != 'words' and type != 'signs':
         logger.error(f"Failed retrieving prophecies or wrong type.")
         return
     sorted_messages = sorted(
-        data[type], key=lambda x: x['date'], reverse=True)
+        prophecies[type], key=lambda x: x['date'], reverse=True)
 
-    messages = []
+    replies = []
     blessing = 'word' if type == 'words' else 'sign'
-    praying_hands = '\U0001F64F'
 
     for i in range(amount):
         if i < len(sorted_messages):
-            jump_url = sorted_messages[i]['jump_url']
-            date = sorted_messages[i]['date'][:-5]
-            content = f"``{sorted_messages[i]['content']}``" if blessing == 'word' else sorted_messages[i]['reaction']
-            sign = f"{jump_url}\n\n *At {date}UTC, **Lord Graysun** has blessed us with a {blessing}:* \n\n {content}\n\n *Praise be to him* {praying_hands}\n-------------------------------------------------------\n"
-            messages.append(sign)
+            reply = generate_reply(sorted_messages[i], blessing)
+            if i != amount-1:
+                reply += "\n--------------------------------------------"
+            replies.append(reply)
 
-    return messages
-
-
-async def write_message_to_file(message, attr, filename):
-    async with aiofiles.open(filename, 'r', encoding='utf-8') as file:
-        prophecies = json.loads(await file.read())
-
-        if not attr in prophecies:
-            logger.error(f"Invalid obj property name")
-            return
-        if message in prophecies[attr]:
-
-            return
-
-        prophecies[attr].append(message)
-
-        async with aiofiles.open(filename, 'w', encoding='utf-8') as file:
-            await file.write(json.dumps(prophecies))
+    return replies
 
 
-async def get_prophecies():
-    async with aiofiles.open('prophecies.json', 'r', encoding='utf-8') as file:
-        return json.loads(await file.read())
+async def add_prophecies(message, attr, client=None):
+    logger.debug('add prophecies')
+    prophecies = await get_bin(PROPHECIES_ID)
+    if not attr in prophecies:
+        logger.error(f"Invalid obj property name")
+        return
+
+    if message in prophecies[attr]:
+        return
+
+    prophecies[attr].append(message)
+
+    await update_bin(prophecies, PROPHECIES_ID)
+    if not client:
+        logger.error(f"Client is not defined")
+        return
+
+    channel = client.get_channel(NEWS_CHANNEL_ID)
+
+    if not channel:
+        logger.error(f"Channel is not defined")
+        return
+
+    reply = get_replies(attr, 1)
+    await channel.send(reply)
 
 
-def requestDataByProxy(site, proxies, type='get', options=None,):
-    proxy = random.choice(proxies)
+def generate_reply(message, blessing):
+    praying_hands = '\U0001F64F'
 
-    try:
-        logger.info(f"Using a proxy [{proxy}]")
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'Accept-Language': 'en-US,en;q=0.5'
+    jump_url = message['jump_url']
+    date = message['date'][:-5]
+    date_obj = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+    date = date_obj.strftime(
+        '%B %d' + ('th' if 4 <= date_obj.day <= 20 or 24 <= date_obj.day <= 30 else ['st', 'nd', 'rd'][date_obj.day % 10 - 1]))
+
+    reacted_message = f"a mortal's voice echoed: \n *`{message['content']}`*"
+    content = message['content']
+    reaction = message.get('reaction')
+    reply = ""
+    author = f"the mighty lord **{message['author']}**" if message['author'] == 'Graysun' else f"the unsung hero of the heavens **{message['author']}**"
+    if blessing == 'sign':
+        reply = f"{jump_url} On {date} {reacted_message}\nTherefore {author} blessed us with a {blessing}: {reaction}\nPraise be to him {praying_hands}"
+    else:
+        reply = f"{jump_url} On {date}, {author} blessed us with a {blessing}: \n`{content}`\nPraise be to him {praying_hands}"
+    return reply
+
+
+async def process_message(msg, prophecies):
+
+    date = msg.get('timestamp')
+    date = datetime.fromisoformat(date)
+    date = date.strftime('%Y-%m-%d %H:%M:%S')
+    author = msg.get('author').get('username')
+    content = msg.get('content') if msg.get('content') else ' '
+    msg_id = msg.get('id')
+
+    if not date:
+        logger.error('Missing date')
+        return
+    if not content:
+        logger.error('Missing content')
+        return
+    if not author:
+        logger.error('Missing author')
+        return
+
+    jump_url = f"https://discord.com/channels/{SERVER_ID}/{TARGET_CHANNEL_ID}/{msg_id}"
+    author_id = msg.get('author').get('id')
+
+    if author_id == GRAYSUN_USER_ID or author_id == SDF_USER_ID:
+        logger.success('found message')
+        words = {
+            'date': date,
+            'author': author,
+            'content': content,
+            'jump_url': jump_url,
         }
-        res = requests.post(
-            site, proxies={'http': proxy, 'https': proxy}, headers=headers) if type == 'post' else requests.get(
-            site, proxies={'http': proxy, 'https': proxy}, headers=headers)
+        await add_prophecies(message=words, attr='words')
 
-        res.raise_for_status()
-        data = res.json()
-        logger.debug(f"Returned: {data}\n")
-        return data
-    except requests.exceptions.JSONDecodeError as err:
-        logger.error(f"Json Decode Error: {err}\n")
-    except requests.exceptions.HTTPError as err:
-        logger.error(f"Http error: {err}\n")
-    except requests.exceptions.RequestException as err:
-        logger.error(f"RequestException: {err}\n")
+    if msg.get('reactions'):
+        reactions = msg['reactions']
+        target_reactions = []
+        author = ''
+        for reaction in reactions:
+            emoji = reaction['emoji']
+            r = emoji.get('name')
+
+            if emoji.get('id'):
+                r = f":{emoji['name']}:"
+                emoji = f"{emoji['name']}:{emoji['id']}"
+            else:
+                emoji = emoji.get('name')
+                r = str(emoji)
+                emoji = urllib.parse.quote(emoji)
+
+            endpoint = f"https://discord.com/api/v10/channels/{SERVER_ID}/messages/{msg_id}/reactions/{emoji}"
+            users = await send_request(endpoint, headers)
+
+            for user in users:
+                if user['id'] == GRAYSUN_USER_ID:
+                    author = 'Graysun'
+                    break
+                elif user['id'] == SDF_USER_ID:
+                    author = 'sdf'
+                    break
+
+            if not author:
+                continue
+            target_reactions.append(r)
+
+        signs = {
+            'date': date,
+            'author': author,
+            'content': content,
+            'jump_url': jump_url,
+            'reaction': ' '.join(target_reactions)
+        }
+        await add_prophecies(message=signs, attr='signs')
 
 
 def parse_to_number(input):
