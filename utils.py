@@ -37,7 +37,7 @@ TERENCE_USER_ID = os.environ.get(
 NEWS_CHANNEL_ID = os.environ.get(
     'EVANGELIST_NEWS_CHANNEL_ID') if not DEBUG else TEST_NEWS_CHANNEL_ID
 TARGET_CHANNEL_ID = os.environ.get(
-    'EVANEGLIST_TARGET_CHANNEL_ID') if not DEBUG else TEST_CHANNEL_ID
+    'EVANGELIST_TARGET_CHANNEL_ID') if not DEBUG else TEST_CHANNEL_ID
 
 MESSAGES_ENDPOINT = f"https://discord.com/api/v8/channels/{TARGET_CHANNEL_ID}/messages?limit=100"
 
