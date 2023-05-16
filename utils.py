@@ -9,7 +9,7 @@ from loguru import logger
 import random
 
 
-DEBUG = True if sys.argv[1] and sys.argv[1] == 'DEBUG' else False
+DEBUG = True if len(sys.argv) >= 2 and sys.argv[1] == 'DEBUG' else False
 logger.debug(DEBUG)
 BOT_TOKEN = os.environ.get('EVANGELIST_BOT_TOKEN')
 TOKEN = os.environ.get('EVANGELIST_TOKEN')
