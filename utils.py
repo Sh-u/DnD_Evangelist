@@ -119,7 +119,8 @@ async def process_message(msg, prophecies, news=None):
             if not author:
                 continue
             target_reactions.append(r)
-
+        if not author:
+            return
         signs = {
             'id': msg_id,
             'date': date,
