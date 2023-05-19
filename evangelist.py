@@ -59,7 +59,7 @@ async def update_scriptures():
     await update_bin(scriptures, SCRIPTURES_ID)
 
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=2)
 async def update_prophecies():
     logger.info("Updating prophecies!")
 
@@ -94,10 +94,14 @@ async def update_prophecies():
         logger.error("Channel is not defined")
         return
 
-    await update_bin(prophecies, PROPHECIES_ID)
+    updated = await update_bin(prophecies, PROPHECIES_ID)
 
     if not news or len(news) == 0:
         logger.error('No news.')
+        return
+
+    if not updated:
+        logger.error('Bin not updated.')
         return
 
     news = sort_messages(messages=news, reverse=False)
@@ -129,6 +133,7 @@ async def on_message(msg):
     if msg.content.startswith('!sign'):
         amount = get_replies_amount(msg.content)
         prophecies = await get_prophecies()
+
         signs = prophecies.get('record').get('signs')
 
         if not signs or len(signs) == 0:

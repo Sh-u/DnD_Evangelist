@@ -220,9 +220,12 @@ def generate_reply(message, blessing):
     date = message['date']
     date_obj = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
 
-    date = date_obj.strftime('%B ') + ordinal(date_obj.day) + \
-        date_obj.strftime(', %H:%M:%S UTC')
+    # date = date_obj.strftime('%B ') + ordinal(date_obj.day) + \
+    #     date_obj.strftime(', %H:%M:%S UTC')
 
+    date = int(date_obj.timestamp())
+    date = f"<t:{date}:F>"
+    # praying_hands = "<:ComfyOtto:1096439886715826317>"
     reacted_message = f"a mortal's voice echoed: \n*`{message['content']}`*"
     content = message['content']
     reaction = message.get('reaction')
