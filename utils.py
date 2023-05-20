@@ -46,6 +46,8 @@ headers = {
     'Content-Type': 'application/json'
 }
 
+RETRY_AFTER = 0
+
 
 async def process_message(msg, prophecies, news=None):
 
@@ -273,16 +275,23 @@ async def send_request(url, header):
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(url, headers=header) as response:
+                global RETRY_AFTER
+                logger.warning(f"making a request: get, for url: {url}")
                 response.raise_for_status()
                 data = await response.json()
 
                 if not data or response.status != 200:
                     logger.error(
                         f"Could not get messages, status code: {response.status}\n")
-
+                if RETRY_AFTER != 0:
+                    RETRY_AFTER = 0
                 return data
         except aiohttp.ClientError as error:
-            logger.error(f"Error sending request: {error}")
+            global RETRY_AFTER
+            logger.error(f"Error sending request: {error}, data: {data}")
+            retry = data.get('retry_after')
+            if retry:
+                RETRY_AFTER = retry
 
 
 async def update_bin(data, bin_id):

@@ -9,14 +9,20 @@ headers = {
 req = requests.get(url, headers=headers)
 req = req.json()
 
+old = req['record']['signs']
 
-# filtered = [obj for obj in req['record']
-#             ['signs'] if obj['date'] >= '2023-05-1
+print(f"old len: {len(old)}, old: {old} \n\n\n\n\n\n\n\n")
 
+
+filtered = [obj for obj in req['record']
+            ['signs'] if obj['date'] >= '2023-05-19 18:40:00']
+
+
+print(f"filtered len: {len(filtered)}, filtered: {filtered}")
 
 req = {
-    "words": req['record']['record']['words'],
-    "signs": req['record']['record']['signs']
+    "words": req['record']['words'],
+    "signs": filtered
 }
 
 

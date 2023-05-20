@@ -5,3 +5,4 @@ clear.py
 .vscode
 proxyCheck.py
 __pycache__
+clean.py

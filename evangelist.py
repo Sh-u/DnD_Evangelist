@@ -17,6 +17,7 @@ from utils import (BOT_TOKEN,
                    send_request,
                    SCRIPTURES_CHANNEL_ID,
                    sort_messages,
+                   RETRY_AFTER,
                    update_bin)
 
 
@@ -34,6 +35,7 @@ async def main():
 
 @tasks.loop(minutes=30)
 async def update_scriptures():
+
     logger.info("Updating scriptures!")
 
     channel = client.get_channel(
@@ -59,8 +61,12 @@ async def update_scriptures():
     await update_bin(scriptures, SCRIPTURES_ID)
 
 
-@tasks.loop(minutes=2)
+@tasks.loop(seconds=150)
 async def update_prophecies():
+    global RETRY_AFTER
+
+    if RETRY_AFTER != 0:
+        logger.error(f'Rate limit exceeded. Retrying in {RETRY_AFTER}')
     logger.info("Updating prophecies!")
 
     msgs = await send_request(MESSAGES_ENDPOINT, headers)
