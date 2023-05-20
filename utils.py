@@ -273,9 +273,10 @@ async def _request_bin(bin_id, method, data=None):
 
 async def send_request(url, header):
     async with aiohttp.ClientSession() as session:
+        global RETRY_AFTER
         try:
             async with session.get(url, headers=header) as response:
-                global RETRY_AFTER
+
                 logger.warning(f"making a request: get, for url: {url}")
                 response.raise_for_status()
                 data = await response.json()
@@ -287,7 +288,7 @@ async def send_request(url, header):
                     RETRY_AFTER = 0
                 return data
         except aiohttp.ClientError as error:
-            global RETRY_AFTER
+
             logger.error(f"Error sending request: {error}, data: {data}")
             retry = data.get('retry_after')
             if retry:
