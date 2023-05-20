@@ -63,7 +63,6 @@ async def update_scriptures():
 
 @tasks.loop(seconds=150)
 async def update_prophecies():
-    global RETRY_AFTER
 
     if RETRY_AFTER != 0:
         logger.error(f'Rate limit exceeded. Retrying in {RETRY_AFTER}')
