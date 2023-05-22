@@ -269,6 +269,7 @@ async def _request_bin(bin_id, method, data=None):
                 return data
         except aiohttp.ClientError as error:
             logger.error(f"Error sending request: {error}")
+            return None
 
 
 async def send_request(url, header):
@@ -296,7 +297,7 @@ async def send_request(url, header):
 
 
 async def update_bin(data, bin_id):
-    await _request_bin(bin_id, 'put', data)
+    return await _request_bin(bin_id, 'put', data)
 
 
 async def get_bin(bin_id):
