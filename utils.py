@@ -247,7 +247,7 @@ def generate_reply(message, blessing):
 
 
 async def _request_bin(bin_id, method, data=None):
-    url = f"https://jsonbin.org/sh-u/prophecies/{bin_id}"
+    url = f"https://jsonbin.org/sh-u/{bin_id}"
     header = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {BIN_MASTER_KEY}'
