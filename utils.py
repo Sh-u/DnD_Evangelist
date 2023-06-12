@@ -228,7 +228,7 @@ def generate_reply(message, blessing):
     date = int(date_obj.timestamp())
     date = f"<t:{date}:F>"
     # praying_hands = "<:ComfyOtto:1096439886715826317>"
-    reacted_message = f"\n*`{message['content']}`*"
+    reacted_message = f"\n{message['content']}"
     content = message['content']
     reaction = message.get('reaction')
     reply = ""
@@ -282,7 +282,7 @@ async def send_request(url, header):
                 response.raise_for_status()
                 data = await response.json()
 
-                if not data or response.status != 200:
+                if not data or response.status != 200 or response.status != 201:
                     logger.error(
                         f"Could not get messages, status code: {response.status}\n")
                 if RETRY_AFTER != 0:
