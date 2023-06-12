@@ -228,7 +228,7 @@ def generate_reply(message, blessing):
     date = int(date_obj.timestamp())
     date = f"<t:{date}:F>"
     # praying_hands = "<:ComfyOtto:1096439886715826317>"
-    reacted_message = f"a mortal's voice echoed: \n*`{message['content']}`*"
+    reacted_message = f"\n*`{message['content']}`*"
     content = message['content']
     reaction = message.get('reaction')
     reply = ""
@@ -237,11 +237,11 @@ def generate_reply(message, blessing):
         if author_id == GRAYSUN_USER_ID else f"the unsung hero of the heavens **{message['author']}**"
 
     if blessing == 'sign':
-        reply = f"{jump_url} On {date} {reacted_message}\nThereupon" \
-            f" {author} blessed us with a {blessing}: {reaction}\n*Praise be to him!*{praying_hands}"
+        reply = f"{jump_url} On {date} a mortal's voice echoed\nthereupon {author} blessed us with a {blessing}: {reaction}\n" \
+            f"\n>>> {reacted_message}"
     else:
-        reply = f"{jump_url} On {date} {author} blessed us with a {blessing}: " \
-            f"\n`{content}`\n*Praise be to him!*{praying_hands}"
+        reply = f"{jump_url} On {date} {author} blessed us with a {blessing}:" \
+            f"\n>>> {content}"
 
     return reply
 
@@ -262,7 +262,7 @@ async def _request_bin(bin_id, method, data=None):
                 response.raise_for_status()
                 data = await response.json()
 
-                if not data or response.status != 200:
+                if not data or response.status != 200 or response.status != 201:
                     logger.error(
                         f"Could not process the bin, status code: {response.status}\n")
 
