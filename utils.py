@@ -247,10 +247,10 @@ def generate_reply(message, blessing):
 
 
 async def _request_bin(bin_id, method, data=None):
-    url = f"https://api.jsonbin.io/v3/b/{bin_id}"
+    url = f"https://jsonbin.org/sh-u/prophecies/{bin_id}"
     header = {
         'Content-Type': 'application/json',
-        'X-Master-Key': f"{BIN_MASTER_KEY}"
+        'Authorization': f'Bearer {BIN_MASTER_KEY}'
     }
     async with aiohttp.ClientSession() as session:
         try:
@@ -297,7 +297,7 @@ async def send_request(url, header):
 
 
 async def update_bin(data, bin_id):
-    return await _request_bin(bin_id, 'put', data)
+    return await _request_bin(bin_id, 'post', data)
 
 
 async def get_bin(bin_id):
