@@ -316,7 +316,7 @@ async def get_prophecies():
 
 async def get_scripture():
     scriptures = await get_bin(SCRIPTURES_ID)
-    scriptures = scriptures['record']['scriptures']
+    scriptures = scriptures['scriptures']
 
     if not scriptures or len(scriptures) == 0:
         logger.error("Scriptures are empty.")

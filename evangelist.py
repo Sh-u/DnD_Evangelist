@@ -47,7 +47,7 @@ async def update_scriptures():
     messages = [message async for message in channel.history(limit=500)]
 
     scriptures = await get_bin(SCRIPTURES_ID)
-    scriptures = scriptures['record']
+  
     if not scriptures:
         logger.error("No scriptures found")
         return
@@ -74,7 +74,7 @@ async def update_prophecies():
         logger.error("No messages found")
         return
     prophecies = await get_prophecies()
-    prophecies = prophecies.get('record')
+   
     old_prophecies = copy.deepcopy(prophecies)
     news = []
     if not prophecies:
@@ -139,7 +139,7 @@ async def on_message(msg):
         amount = get_replies_amount(msg.content)
         prophecies = await get_prophecies()
 
-        signs = prophecies.get('record').get('signs')
+        signs = prophecies.get('signs')
 
         if not signs or len(signs) == 0:
             await target_channel.send('I am sorry my child, we are praying for the lord to give us a sign...')
@@ -154,7 +154,7 @@ async def on_message(msg):
     if msg.content.startswith('!word'):
         amount = get_replies_amount(msg.content)
         prophecies = await get_prophecies()
-        words = prophecies.get('record').get('words')
+        words = prophecies.get('words')
 
         if not words or len(words) == 0:
             await target_channel.send('I am sorry my child, we are praying for the lord to speak...')
