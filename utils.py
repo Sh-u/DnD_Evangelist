@@ -237,7 +237,7 @@ def generate_reply(message, blessing):
         if author_id == GRAYSUN_USER_ID else f"the unsung hero of the heavens **{message['author']}**"
 
     if blessing == 'sign':
-        reply = f"{jump_url} On {date} a mortal's voice echoed\nthereupon {author} blessed us with a {blessing}: {reaction}\n" \
+        reply = f"{jump_url} On {date} a mortal's voice echoed\nthereupon {author} blessed us with a {blessing}: {reaction}" \
             f"\n>>> {reacted_message}"
     else:
         reply = f"{jump_url} On {date} {author} blessed us with a {blessing}:" \
@@ -262,7 +262,7 @@ async def _request_bin(bin_id, method, data=None):
                 response.raise_for_status()
                 data = await response.json()
 
-                if not data or response.status != 200 or response.status != 201:
+                if  response.status != 200 or response.status != 201:
                     logger.error(
                         f"Could not process the bin, status code: {response.status}\n")
 
@@ -282,7 +282,7 @@ async def send_request(url, header):
                 response.raise_for_status()
                 data = await response.json()
 
-                if not data or response.status != 200 or response.status != 201:
+                if response.status != 200 or response.status != 201:
                     logger.error(
                         f"Could not get messages, status code: {response.status}\n")
                 if RETRY_AFTER != 0:
