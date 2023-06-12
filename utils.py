@@ -250,7 +250,7 @@ async def _request_bin(bin_id, method, data=None):
     url = f"https://jsonbin.org/sh-u/{bin_id}"
     header = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {BIN_MASTER_KEY}'
+        'Authorization': f'token {BIN_MASTER_KEY}'
     }
     async with aiohttp.ClientSession() as session:
         try:
